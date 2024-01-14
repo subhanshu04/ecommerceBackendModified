@@ -1,5 +1,6 @@
 package com.example.ecommerce.security;
 
+import com.example.ecommerce.model.User;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -11,12 +12,17 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.authorization.AuthorizationEventPublisher;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.SpringAuthorizationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.messaging.access.intercept.AuthorizationChannelInterceptor;
 import org.springframework.security.messaging.access.intercept.MessageMatcherDelegatingAuthorizationManager;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+import java.util.Map;
 
 @Configuration
 @EnableWebSocket
@@ -24,7 +30,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private ApplicationContext context;
     private JWTRequestFilter jwtRequestFilter;
-    private 
+    private static final AntPathMatcher MATCHER = new AntPathMatcher();
 
     public WebSocketConfig(ApplicationContext context, JWTRequestFilter jwtRequestFilter) {
         this.context = context;
@@ -79,23 +85,71 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         //Adding interceptor to our Channel and adding the Request filter before the interceptor.
         // This means that it will check if the token is validated then The message is passed to the topics.
-        registration.interceptors(jwtRequestFilter,authorizationChannelInterceptor);
+        registration.interceptors(jwtRequestFilter,authorizationChannelInterceptor,
+                new RejectClientMessagesOnChannelsChannelInterceptor(),
+                new DestinationLevelAuthorizationChannelInterceptor());
     }
 
     //Class is used to reject client messages based on destination(specific topic).
-    private class RejectClientMessagesOnChannelsChannelInterceptor implements ChannelInterceptor {
-        private String[] paths = new String[]{
+    private class RejectClientMessagesOnChannelsChannelInterceptor
+            implements ChannelInterceptor {
+        private String[] pathPatterns = new String[]{
                 ".topic/user/*/address"
         };
         @Override
         public Message<?> preSend(Message<?> message, MessageChannel channel) {
             //Check if the message type is message
             if(message.getHeaders().get("simpMessageType").equals(SimpMessageType.MESSAGE)){
+                String simpDestination = (String)message.getHeaders().get("simpDestination");
                 //Check if the simpDestination matches with our paths.
-                for(String path : paths){
-                    if(MATCHER.)
+                for(String pathPattern : pathPatterns){
+                    //Ant Path Matcher is for comparing "ant-style" patterns
+                    //Examples
+                    //1) com/t?st.jsp — matches com/test.jsp but also com/tast.jsp or com/txst.jsp
+                    if(MATCHER.match(pathPattern,simpDestination)){
+                        //if it matches then set message to null. So when this null message is passed to the channel, it won't get completed.
+                        message = null;
+
+                        //NOTE : Why we cant throw exception?
+                        //If we throw exception the communication breaks at that point and the client disconnects with the application.
+                    }
                 }
             }
+            return message;
+        }
+    }
+
+    //Create class to check if user has access to the requested topic or not.
+    private class DestinationLevelAuthorizationChannelInterceptor
+            implements ChannelInterceptor{
+        @Override
+        public Message<?> preSend(Message<?> message, MessageChannel channel) {
+            if(message.getHeaders().get("simpMessageType").equals(SimpMessageType.SUBSCRIBE)) {
+                String simpDestination = (String) message.getHeaders().get("simpDestination");
+                //extractUriTemplateVariables -> Compares and stores the param values. In this case it stores "userId"
+                Map<String , String> params = MATCHER.extractUriTemplateVariables(
+                        "topic/user/{userId}/**",simpDestination);
+                try{
+                    Long userId = Long.valueOf(params.get("userId"));
+                    //Get the user who is sending the request.
+                    Authentication authentication =
+                            SecurityContextHolder.getContext().getAuthentication();
+                    if(authentication!=null){
+                        User user = (User)authentication.getPrincipal();
+                        //Check if the userId that we got from the requested path is same with the User which is sending the request.
+                        if(user.getId() != userId){
+                            message = null;
+                        }
+                    }
+                    else{
+                        message = null;
+                    }
+                }
+                catch(NumberFormatException ex){
+                    message = null;
+                }
+            }
+            return message;
         }
     }
 }
