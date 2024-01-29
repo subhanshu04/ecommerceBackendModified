@@ -28,8 +28,8 @@ public class UserController {
         return ResponseEntity.ok().body(userDetailModificationService.updateAddress(user.getId(),addressBody));
     }
 
-    @PutMapping("/address/modify/{address_id}")
-    public ResponseEntity modifyAddress(@AuthenticationPrincipal User user,@RequestBody AddressBody addressBody,@PathVariable Long address_id) throws InvalidAddressId {
-        return ResponseEntity.ok().body(userDetailModificationService.modifyAddress(user.getId(),addressBody,address_id));
-    }
+//    @PutMapping("/address/modify/{address_id}")
+//    public ResponseEntity modifyAddress(@AuthenticationPrincipal User user,@RequestBody AddressBody addressBody,@PathVariable Long address_id) throws InvalidAddressId {
+//        return ResponseEntity.ok().body(userDetailModificationService.modifyAddress(user.getId(),addressBody,address_id));
+//    }
 }

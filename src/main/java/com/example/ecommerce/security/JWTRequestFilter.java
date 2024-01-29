@@ -92,8 +92,8 @@ public class JWTRequestFilter extends OncePerRequestFilter implements ChannelInt
     //PreSend is called internally.
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        //If the message type is CONNECT then only check for validation, if already connected then no need to check for validation.
-        if(message.getHeaders().get("simpMessageType").equals(SimpMessageType.CONNECT)) {
+        //If the message type is SUBSCRIBE then only check for validation, if already connected then no need to check for validation.
+        if(message.getHeaders().get("simpMessageType").equals(SimpMessageType.SUBSCRIBE)) {
             Map nativeHeaders = (Map) message.getHeaders().get("nativeHeaders");
             if (nativeHeaders != null) {
                 List authToken = (List) nativeHeaders.get("Authorization");

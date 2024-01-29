@@ -76,7 +76,7 @@ public class Authentication {
             return ResponseEntity.ok().build();
         }
         else{
-            //Conflict states that either user is already verified or token doesnt exist.
+            //Conflict states that either user is already verified or token doesn't exist.
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
