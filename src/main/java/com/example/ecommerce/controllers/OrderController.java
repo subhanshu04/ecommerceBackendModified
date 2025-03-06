@@ -32,8 +32,11 @@ public class OrderController {
     }
 
     @PostMapping("/createOrderForDemo")
-    public WebOrder createOrderForDemo(@AuthenticationPrincipal User user, @RequestBody PlacedOrderBody placedOrderBody)
+    public WebOrder createOrderForDemo(@AuthenticationPrincipal User user,
+            @RequestBody PlacedOrderBody placedOrderBody)
             throws WrongProductNameException, QuantityNotAvailableException {
+        System.out.println("hello from git");
         return orderService.createOrder(user, placedOrderBody);
     }
+
 }
