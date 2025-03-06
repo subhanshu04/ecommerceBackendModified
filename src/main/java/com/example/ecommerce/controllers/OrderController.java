@@ -21,12 +21,19 @@ public class OrderController {
     }
 
     @GetMapping()
-    public List<WebOrder> getOrders(@AuthenticationPrincipal User user){
+    public List<WebOrder> getOrders(@AuthenticationPrincipal User user) {
         return orderService.getOrders(user);
     }
 
     @PostMapping("/createOrder")
-    public WebOrder createOrder(@AuthenticationPrincipal User user, @RequestBody PlacedOrderBody placedOrderBody) throws WrongProductNameException, QuantityNotAvailableException {
-        return orderService.createOrder(user,placedOrderBody);
+    public WebOrder createOrder(@AuthenticationPrincipal User user, @RequestBody PlacedOrderBody placedOrderBody)
+            throws WrongProductNameException, QuantityNotAvailableException {
+        return orderService.createOrder(user, placedOrderBody);
+    }
+
+    @PostMapping("/createOrderForDemo")
+    public WebOrder createOrderForDemo(@AuthenticationPrincipal User user, @RequestBody PlacedOrderBody placedOrderBody)
+            throws WrongProductNameException, QuantityNotAvailableException {
+        return orderService.createOrder(user, placedOrderBody);
     }
 }
